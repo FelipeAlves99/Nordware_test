@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ProductReservation.Domain.Common;
 
 namespace ProductReservation.Domain.Reservations;
@@ -5,19 +6,15 @@ namespace ProductReservation.Domain.Reservations;
 public sealed class Reservation
 {
     private static readonly TimeSpan ReservationDuration = TimeSpan.FromHours(72);
-
     private Reservation()
     {
+        Id = Guid.NewGuid();
         Status = ReservationStatus.Active;
     }
 
-    public Reservation(Guid id, Guid customerId, Guid productId, int quantity, DateTimeOffset createdAtUtc)
+    [SetsRequiredMembers]
+    public Reservation(Guid customerId, Guid productId, int quantity)
     {
-        if (id == Guid.Empty)
-        {
-            throw new DomainException("Reservation identifier is required.");
-        }
-
         if (customerId == Guid.Empty)
         {
             throw new DomainException("Reservation customer identifier is required.");
@@ -33,26 +30,26 @@ public sealed class Reservation
             throw new DomainException("Reservation quantity must be greater than zero.");
         }
 
-        EnsureUtc(createdAtUtc, nameof(createdAtUtc));
+        var now = DateTimeOffset.UtcNow;
 
-        Id = id;
+        Id = Guid.NewGuid();
         CustomerId = customerId;
         ProductId = productId;
         Quantity = quantity;
-        CreatedAtUtc = createdAtUtc;
-        ExpiresAtUtc = createdAtUtc.Add(ReservationDuration);
+        CreatedAtUtc = now;
+        ExpiresAtUtc = now.Add(ReservationDuration);
         Status = ReservationStatus.Active;
     }
 
-    public Guid Id { get; private set; }
+    public Guid Id { get; }
 
-    public Guid CustomerId { get; private set; }
+    public required Guid CustomerId { get; set; }
 
-    public Guid ProductId { get; private set; }
+    public required Guid ProductId { get; set; }
 
-    public int Quantity { get; private set; }
+    public required int Quantity { get; set; }
 
-    public DateTimeOffset CreatedAtUtc { get; private set; }
+    public required DateTimeOffset CreatedAtUtc { get; set; }
 
     public DateTimeOffset ExpiresAtUtc { get; private set; }
 
@@ -64,14 +61,11 @@ public sealed class Reservation
 
     public bool IsActiveAt(DateTimeOffset nowUtc)
     {
-        EnsureUtc(nowUtc, nameof(nowUtc));
         return Status == ReservationStatus.Active && nowUtc < ExpiresAtUtc;
     }
 
     public bool TryExpire(DateTimeOffset nowUtc)
     {
-        EnsureUtc(nowUtc, nameof(nowUtc));
-
         if (Status != ReservationStatus.Active || nowUtc < ExpiresAtUtc)
         {
             return false;
@@ -84,8 +78,6 @@ public sealed class Reservation
 
     public bool Cancel(DateTimeOffset nowUtc)
     {
-        EnsureUtc(nowUtc, nameof(nowUtc));
-
         if (Status != ReservationStatus.Active)
         {
             return false;
@@ -101,11 +93,4 @@ public sealed class Reservation
         return true;
     }
 
-    private static void EnsureUtc(DateTimeOffset value, string parameterName)
-    {
-        if (value.Offset != TimeSpan.Zero)
-        {
-            throw new DomainException($"{parameterName} must be expressed in UTC.");
-        }
-    }
 }

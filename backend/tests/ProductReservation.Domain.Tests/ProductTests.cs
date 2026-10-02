@@ -9,7 +9,7 @@ public sealed class ProductTests
     [Fact]
     public void GetAvailability_WhenPartOfStockIsReserved_ReturnsReservedStatusAndRemainingQuantity()
     {
-        var product = new Product(Guid.NewGuid(), "Produto A", 10);
+        var product = new Product("Produto A", 10);
 
         var availability = product.GetAvailability(3);
 
@@ -25,7 +25,7 @@ public sealed class ProductTests
     [InlineData(0, 0, "Unavailable")]
     public void GetAvailability_DerivesExpectedStatus(int totalQuantity, int reservedQuantity, string expectedStatusId)
     {
-        var product = new Product(Guid.NewGuid(), "Produto", totalQuantity);
+        var product = new Product("Produto", totalQuantity);
 
         var availability = product.GetAvailability(reservedQuantity);
 
@@ -35,7 +35,7 @@ public sealed class ProductTests
     [Fact]
     public void EnsureCanReserve_WhenRequestedQuantityExceedsAvailability_ThrowsDomainException()
     {
-        var product = new Product(Guid.NewGuid(), "Produto A", 10);
+        var product = new Product("Produto A", 10);
 
         Assert.Throws<DomainException>(() => product.EnsureCanReserve(8, 3));
     }
@@ -43,6 +43,6 @@ public sealed class ProductTests
     [Fact]
     public void Constructor_WhenTotalQuantityIsNegative_ThrowsDomainException()
     {
-        Assert.Throws<DomainException>(() => new Product(Guid.NewGuid(), "Produto A", -1));
+        Assert.Throws<DomainException>(() => new Product("Produto A", -1));
     }
 }

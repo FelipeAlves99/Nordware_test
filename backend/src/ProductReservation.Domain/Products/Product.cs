@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ProductReservation.Domain.Common;
 
 namespace ProductReservation.Domain.Products;
@@ -6,36 +7,25 @@ public sealed class Product
 {
     private Product()
     {
-        Name = string.Empty;
     }
 
-    public Product(Guid id, string name, int totalQuantity)
+    public Product(string name, int totalQuantity)
     {
-        if (id == Guid.Empty)
-        {
-            throw new DomainException("Product identifier is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new DomainException("Product name is required.");
-        }
-
         if (totalQuantity < 0)
         {
             throw new DomainException("Product total quantity cannot be negative.");
         }
 
-        Id = id;
-        Name = name.Trim();
+        Id = Guid.NewGuid();
+        Name = name;
         TotalQuantity = totalQuantity;
     }
 
-    public Guid Id { get; private set; }
+    public Guid Id { get; }
 
-    public string Name { get; private set; }
+    public required string Name { get; set; }
 
-    public int TotalQuantity { get; private set; }
+    public required int TotalQuantity { get; set; }
 
     public ProductAvailability GetAvailability(int reservedQuantity)
     {

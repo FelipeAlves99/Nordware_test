@@ -1,4 +1,4 @@
-using ProductReservation.Domain.Common;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ProductReservation.Domain.Customers;
 
@@ -6,26 +6,16 @@ public sealed class Customer
 {
     private Customer()
     {
-        Name = string.Empty;
     }
 
-    public Customer(Guid id, string name)
+    [SetsRequiredMembers]
+    public Customer(string name)
     {
-        if (id == Guid.Empty)
-        {
-            throw new DomainException("Customer identifier is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new DomainException("Customer name is required.");
-        }
-
-        Id = id;
-        Name = name.Trim();
+        Id = Guid.NewGuid();
+        Name = name;
     }
 
-    public Guid Id { get; private set; }
+    public Guid Id { get; }
 
-    public string Name { get; private set; }
+    public required string Name { get; set; }
 }
