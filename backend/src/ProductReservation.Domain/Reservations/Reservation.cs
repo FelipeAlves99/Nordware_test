@@ -8,6 +8,7 @@ public sealed class Reservation
 
     private Reservation()
     {
+        Status = ReservationStatus.Active;
     }
 
     public Reservation(Guid id, Guid customerId, Guid productId, int quantity, DateTimeOffset createdAtUtc)

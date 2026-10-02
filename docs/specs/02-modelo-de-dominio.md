@@ -20,6 +20,8 @@ O cliente existe para ser dono logico de uma reserva. A ausencia de autenticacao
 
 O produto expoe comportamento de dominio para verificar se uma quantidade cabe no saldo e para derivar seu status. O status nao deve ser salvo como dado mutavel independente.
 
+`ProductStatus` e uma entidade pequena, identificada somente por `Id`, cujo valor e o nome estavel do status (`Available`, `Reserved` ou `Unavailable`). A disponibilidade do produto aponta para uma dessas instancias; na persistencia EF Core, `ProductStatus` sera uma entidade de lookup com chave primaria textual.
+
 ### Reservation
 
 - `Id`, `CustomerId`, `ProductId` e `Quantity`.
@@ -27,7 +29,7 @@ O produto expoe comportamento de dominio para verificar se uma quantidade cabe n
 - `Status`: `Active`, `Cancelled` ou `Expired`.
 - `CancelledAtUtc` ou `ExpiredAtUtc`, quando correspondente.
 
-Uma reserva somente consome saldo em `Active` e enquanto `ExpiresAtUtc` for posterior ao relogio atual. Cancelar e expirar sao transicoes terminais; uma reserva terminal jamais volta a ativa.
+`ReservationStatus` e uma entidade pequena identificada somente por `Id`, com os valores estaveis `Active`, `Cancelled` e `Expired`. Uma reserva somente consome saldo em `Active` e enquanto `ExpiresAtUtc` for posterior ao relogio atual. Cancelar e expirar sao transicoes terminais; uma reserva terminal jamais volta a ativa.
 
 ## Invariantes
 

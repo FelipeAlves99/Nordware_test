@@ -13,7 +13,7 @@ public sealed class ReservationTests
     {
         var reservation = CreateReservation();
 
-        Assert.Equal(ReservationStatus.Active, reservation.Status);
+        Assert.Equal("Active", reservation.Status.Id);
         Assert.Equal(CreatedAtUtc.AddHours(72), reservation.ExpiresAtUtc);
         Assert.True(reservation.IsActiveAt(CreatedAtUtc.AddHours(71)));
     }
@@ -27,7 +27,7 @@ public sealed class ReservationTests
         var expired = reservation.TryExpire(expirationTime);
 
         Assert.True(expired);
-        Assert.Equal(ReservationStatus.Expired, reservation.Status);
+        Assert.Equal("Expired", reservation.Status.Id);
         Assert.Equal(expirationTime, reservation.ExpiredAtUtc);
         Assert.False(reservation.TryExpire(expirationTime.AddMinutes(1)));
     }
@@ -40,7 +40,7 @@ public sealed class ReservationTests
         var cancelled = reservation.Cancel(CreatedAtUtc.AddHours(72));
 
         Assert.False(cancelled);
-        Assert.Equal(ReservationStatus.Expired, reservation.Status);
+        Assert.Equal("Expired", reservation.Status.Id);
         Assert.Null(reservation.CancelledAtUtc);
     }
 
@@ -51,7 +51,7 @@ public sealed class ReservationTests
         var cancellationTime = CreatedAtUtc.AddHours(1);
 
         Assert.True(reservation.Cancel(cancellationTime));
-        Assert.Equal(ReservationStatus.Cancelled, reservation.Status);
+        Assert.Equal("Cancelled", reservation.Status.Id);
         Assert.Equal(cancellationTime, reservation.CancelledAtUtc);
         Assert.False(reservation.Cancel(cancellationTime.AddMinutes(1)));
     }

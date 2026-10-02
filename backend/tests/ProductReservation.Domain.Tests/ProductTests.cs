@@ -20,16 +20,16 @@ public sealed class ProductTests
     }
 
     [Theory]
-    [InlineData(10, 0, ProductStatus.Available)]
-    [InlineData(10, 10, ProductStatus.Unavailable)]
-    [InlineData(0, 0, ProductStatus.Unavailable)]
-    public void GetAvailability_DerivesExpectedStatus(int totalQuantity, int reservedQuantity, ProductStatus expectedStatus)
+    [InlineData(10, 0, "Available")]
+    [InlineData(10, 10, "Unavailable")]
+    [InlineData(0, 0, "Unavailable")]
+    public void GetAvailability_DerivesExpectedStatus(int totalQuantity, int reservedQuantity, string expectedStatusId)
     {
         var product = new Product(Guid.NewGuid(), "Produto", totalQuantity);
 
         var availability = product.GetAvailability(reservedQuantity);
 
-        Assert.Equal(expectedStatus, availability.Status);
+        Assert.Equal(expectedStatusId, availability.Status.Id);
     }
 
     [Fact]
