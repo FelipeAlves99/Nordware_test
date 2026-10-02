@@ -1,0 +1,14 @@
+# Build outputs and local tooling
+[Bb]in/
+[Oo]bj/
+.vs/
+.idea/
+TestResults/
+
+# Local configuration and user files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.env
+
