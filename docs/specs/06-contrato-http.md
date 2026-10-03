@@ -13,7 +13,7 @@
 
 ### `GET /products`
 
-Retorna `200 OK` com todos os produtos. Cada item contem, no minimo, `id`, `name`, `totalQuantity`, `reservedQuantity`, `availableQuantity` e `status` (`disponivel`, `reservado` ou `indisponivel`). A consulta aplica expiracao sob demanda antes de responder.
+Retorna `200 OK` com todos os produtos. Cada item contem, no minimo, `id`, `name`, `totalQuantity`, `reservedQuantity`, `availableQuantity` e `status` (`disponivel`, `reservado` ou `indisponivel`). O saldo exclui reservas cujo prazo venceu, mesmo que o worker ainda nao tenha persistido o estado `Expired`.
 
 ### `POST /products/{id}/reserve`
 
@@ -35,7 +35,7 @@ Retorna `204 No Content` tanto ao cancelar uma reserva ativa quanto quando nao e
 
 ### `GET /customer/{id_customer}/reservations`
 
-Retorna `200 OK` com as reservas do cliente, incluindo `quantity`, estado e datas de criacao, vencimento e encerramento quando houver. Retorna `404` caso o cliente nao exista. Como nao ha autenticacao, a rota nao compara o identificador com um header.
+Retorna `200 OK` com as reservas do cliente, incluindo `quantity`, estado persistido e datas de criacao, vencimento e encerramento quando houver. Uma reserva vencida pode continuar como `Active` ate ser processada pelo worker. Retorna `404` caso o cliente nao exista. Como nao ha autenticacao, a rota nao compara o identificador com um header.
 
 ## Compatibilidade
 

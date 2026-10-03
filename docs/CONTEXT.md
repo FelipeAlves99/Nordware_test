@@ -4,9 +4,8 @@
 
 ## Estado atual
 
-- O repositorio contem somente o esqueleto da solucao e a documentacao inicial.
 - O modelo de dominio foi implementado: `Customer`, `Product`, `Reservation`, estados de reserva e calculo de disponibilidade. Ha testes puros para invariantes, estados, cancelamento e expiracao.
-- Persistencia, seed, casos de uso, endpoints, sincronizacao de concorrencia e expiracao sob demanda ainda nao foram implementados.
+- Os casos de uso e validacoes da Application foram implementados: reservar, cancelar, listar produtos e listar reservas de cliente. Persistencia concreta, seed, endpoints e sincronizacao implementada ainda estao pendentes.
 - O enunciado original esta preservado em [Desafio_NET_Core.pdf](Desafio_NET_Core.pdf).
 - As decisoes e o fluxo de desenvolvimento ficam detalhados em [specs/00-processo-e-indice.md](specs/00-processo-e-indice.md).
 
@@ -24,7 +23,7 @@ Construir uma API REST em C# / .NET 10 para que clientes de uma plataforma de e-
 - Cada reserva dura 72 horas.
 - Cada produto possui estoque; uma reserva informa quantas unidades pretende reter e so e aceita quando houver saldo suficiente no instante da solicitacao.
 - Concorrencia: reservas simultaneas para o mesmo produto nao podem comprometer mais unidades que o estoque. Uma solicitacao sem saldo suficiente recebe erro de produto indisponivel.
-- A expiracao e verificada sob demanda: antes de consultas ou operacoes do produto/reserva, reservas vencidas sao marcadas como expiradas e devolvem seu saldo ao produto. O mecanismo deve constar no README.
+- Reservas vencidas deixam de consumir saldo pela comparacao com `ExpiresAtUtc`; a transicao persistida para `Expired` sera responsabilidade de um worker, implementado na etapa final. Casos de uso nao expiram reservas.
 - O cancelamento nao exige autorizacao; identifica a reserva pelo produto e pelo `X-Customer-Id`, e e idempotente. Reservas expiradas ou canceladas permanecem armazenadas como exclusao logica.
 
 ## Requisitos tecnicos
@@ -36,7 +35,7 @@ Construir uma API REST em C# / .NET 10 para que clientes de uma plataforma de e-
 - Persistencia com Entity Framework Core e `Microsoft.EntityFrameworkCore.InMemory`.
 - Sem autenticacao.
 - Sem PostgreSQL, migrations de banco relacional, containers ou dependencia de servicos externos.
-- O README deve explicar como executar a aplicacao e documentar a estrategia de expiracao.
+- O README deve explicar como executar a aplicacao e documentar a estrategia de expiracao pelo worker.
 
 ## Estrutura adotada
 
@@ -84,10 +83,10 @@ backend/
 
 ## Fora de escopo neste momento
 
-- Implementar casos de uso, endpoints ou seed de produtos.
+- Implementar endpoints ou seed de produtos.
 - Autenticacao/autorizacao.
 - PostgreSQL, migrations, Docker, observabilidade ou integracoes externas.
 
 ## Proximo passo sugerido
 
-Seguir a ordem de `docs/specs/00-processo-e-indice.md`: casos de uso, persistencia/concorrencia, expiracao, HTTP e testes.
+Seguir a ordem de `docs/specs/00-processo-e-indice.md`: persistencia/concorrencia, HTTP e testes; implementar o worker de expiracao por ultimo.

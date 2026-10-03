@@ -14,7 +14,8 @@
 
 - Cliente/produto inexistentes, header invalido, reserva duplicada e saldo insuficiente.
 - Cancelamento libera saldo, e repeticao e idempotente.
-- Relogio controlado expira a reserva exatamente em `ExpiresAtUtc`.
+- Relogio controlado verifica que uma reserva vencida deixa de consumir saldo sem que o caso de uso altere seu estado persistido.
+- Cancelamento apos o vencimento nao muda o estado para `Cancelled`; a transicao para `Expired` e coberta com os testes do worker na etapa final.
 - Seed contem `Produto A` com 10 unidades e clientes utilizaveis.
 
 ## Testes de API
@@ -30,4 +31,4 @@
 - Nenhuma regra de negocio vive nos endpoints.
 - Dependencias obedecem as camadas descritas em `CONTEXT.md`.
 - O README explica pre-requisitos, como executar, os identificadores do seed, exemplos de chamadas e a limitacao da concorrencia em processo unico.
-- O README explica explicitamente a expiracao sob demanda e como ela devolve estoque quando o recurso e observado.
+- O README explica explicitamente a expiracao assincrona por worker, o retorno do saldo pelo vencimento e a janela ate a atualizacao do estado persistido.

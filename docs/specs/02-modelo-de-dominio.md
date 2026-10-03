@@ -31,7 +31,7 @@ O produto expoe comportamento de dominio para verificar se uma quantidade cabe n
 - `Status`: `Active`, `Cancelled` ou `Expired`.
 - `CancelledAtUtc` ou `ExpiredAtUtc`, quando correspondente.
 
-`ReservationStatus` e uma entidade pequena identificada somente por `Id`, com os valores estaveis `Active`, `Cancelled` e `Expired`. Uma reserva somente consome saldo em `Active` e enquanto `ExpiresAtUtc` for posterior ao relogio atual. Cancelar e expirar sao transicoes terminais; uma reserva terminal jamais volta a ativa. O dominio nao valida o offset UTC dos timestamps.
+`ReservationStatus` e uma entidade pequena identificada somente por `Id`, com os valores estaveis `Active`, `Cancelled` e `Expired`. Uma reserva somente consome saldo em `Active` e enquanto `ExpiresAtUtc` for posterior ao relogio atual. `Cancel` nao cancela uma reserva cujo prazo venceu e nao realiza a transicao para `Expired`; essa transicao sera executada pelo worker. Cancelar e expirar sao transicoes terminais; uma reserva terminal jamais volta a ativa. O dominio nao valida o offset UTC dos timestamps.
 
 ## Invariantes
 
@@ -44,6 +44,6 @@ O produto expoe comportamento de dominio para verificar se uma quantidade cabe n
 ## Responsabilidades por camada
 
 - O **Domain** conhece entidades, estados, invariantes e transicoes.
-- A **Application** consulta reservas, aplica a expiracao antes de decidir e coordena o caso de uso.
-- A **Infrastructure** persiste o modelo e fornece sincronizacao/relatorio de tempo pelas abstracoes necessarias.
+- A **Application** coordena casos de uso e calcula disponibilidade excluindo reservas cujo prazo venceu, sem persistir a transicao de expiracao.
+- A **Infrastructure** persiste o modelo, fornece sincronizacao/relatorio de tempo e hospedara o worker responsavel pela transicao para `Expired` na etapa final.
 - A **API** converte HTTP para comandos e resultados; nao recalcula saldo nem muda estados diretamente.
