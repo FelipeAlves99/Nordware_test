@@ -31,7 +31,7 @@ O produto expoe comportamento de dominio para verificar se uma quantidade cabe n
 - `Status`: `Active`, `Cancelled` ou `Expired`.
 - `CancelledAtUtc` ou `ExpiredAtUtc`, quando correspondente.
 
-`ReservationStatus` e uma entidade pequena identificada somente por `Id`, com os valores estaveis `Active`, `Cancelled` e `Expired`. Uma reserva somente consome saldo em `Active` e enquanto `ExpiresAtUtc` for posterior ao relogio atual. `Cancel` nao cancela uma reserva cujo prazo venceu e nao realiza a transicao para `Expired`; essa transicao sera executada pelo worker. Cancelar e expirar sao transicoes terminais; uma reserva terminal jamais volta a ativa. O dominio nao valida o offset UTC dos timestamps.
+`ReservationStatus` e uma entidade pequena identificada somente por `Id`, com os valores estaveis `Active`, `Cancelled` e `Expired`. `Reservation` persiste apenas o `StatusId` como FK escalar; a propriedade de dominio `Status` resolve o ID para as instancias estaticas e nao e uma navegacao EF. Uma reserva somente consome saldo em `Active` e enquanto `ExpiresAtUtc` for posterior ao relogio atual. `Cancel` nao cancela uma reserva cujo prazo venceu e nao realiza a transicao para `Expired`; essa transicao sera executada pelo worker. Cancelar e expirar sao transicoes terminais; uma reserva terminal jamais volta a ativa. O dominio nao valida o offset UTC dos timestamps.
 
 ## Invariantes
 

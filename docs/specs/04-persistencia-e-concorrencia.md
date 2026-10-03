@@ -1,6 +1,6 @@
 # Persistencia, seed e concorrencia
 
-**Status:** aceita  
+**Status:** implementada
 **Dependencias:** [02-modelo-de-dominio.md](02-modelo-de-dominio.md), [03-casos-de-uso.md](03-casos-de-uso.md)
 
 ## Persistencia
@@ -22,6 +22,8 @@ O seed deve ser deterministico e permitir testar a API sem preparacao manual.
 | Cliente | Cliente B | id e nome definidos no seed |
 
 Os identificadores reais usados nos exemplos do README devem ser os mesmos do seed. O banco e reinicializado ao reiniciar a aplicacao, caracteristica aceita do provider InMemory.
+
+`Customer`, `Product`, `Reservation`, `ProductStatus` e `ReservationStatus` possuem configuracoes EF independentes. Os estados sao tabelas lookup com chave textual; a reserva persiste o `StatusId` como FK escalar para evitar materializar uma navegacao ao ler seu estado. Os IDs de status sao fixos e todos os valores validos sao seeded.
 
 ## Garantia de concorrencia
 

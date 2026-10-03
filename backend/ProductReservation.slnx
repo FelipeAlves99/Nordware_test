@@ -8,6 +8,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/ProductReservation.Domain.Tests/ProductReservation.Domain.Tests.csproj" />
     <Project Path="tests/ProductReservation.Application.Tests/ProductReservation.Application.Tests.csproj" />
+    <Project Path="tests/ProductReservation.Infrastructure.Tests/ProductReservation.Infrastructure.Tests.csproj" />
     <Project Path="tests/ProductReservation.Api.Tests/ProductReservation.Api.Tests.csproj" />
   </Folder>
 </Solution>

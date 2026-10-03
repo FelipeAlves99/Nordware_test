@@ -21,10 +21,11 @@ internal sealed class TestAppDbContext(DbContextOptions<TestAppDbContext> option
         modelBuilder.Entity<Product>().HasKey(product => product.Id);
         modelBuilder.Entity<Reservation>().HasKey(reservation => reservation.Id);
         modelBuilder.Entity<ReservationStatus>().HasKey(status => status.Id);
+        modelBuilder.Entity<Reservation>().Ignore(reservation => reservation.Status);
         modelBuilder.Entity<Reservation>()
-            .HasOne(reservation => reservation.Status)
+            .HasOne<ReservationStatus>()
             .WithMany()
-            .HasForeignKey("StatusId");
+            .HasForeignKey(reservation => reservation.StatusId);
     }
 
     public static TestAppDbContext Create()

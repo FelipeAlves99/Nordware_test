@@ -40,7 +40,7 @@ public sealed class ReserveProductCommandHandler(
             .AnyAsync(reservation =>
                 reservation.ProductId == product.Id &&
                 reservation.CustomerId == request.CustomerId &&
-                reservation.Status.Id == ReservationStatus.Active.Id &&
+                reservation.StatusId == ReservationStatus.Active.Id &&
                 reservation.ExpiresAtUtc > nowUtc,
                 cancellationToken);
 
@@ -54,7 +54,7 @@ public sealed class ReserveProductCommandHandler(
         var activeReservations = await dbContext.Reservations
             .Where(reservation =>
                 reservation.ProductId == product.Id &&
-                reservation.Status.Id == ReservationStatus.Active.Id &&
+                reservation.StatusId == ReservationStatus.Active.Id &&
                 reservation.ExpiresAtUtc > nowUtc)
             .ToListAsync(cancellationToken);
         var reservedQuantity = activeReservations.Sum(reservation => reservation.Quantity);

@@ -5,7 +5,7 @@
 ## Estado atual
 
 - O modelo de dominio foi implementado: `Customer`, `Product`, `Reservation`, estados de reserva e calculo de disponibilidade. Ha testes puros para invariantes, estados, cancelamento e expiracao.
-- Os casos de uso e validacoes da Application foram implementados: reservar, cancelar, listar produtos e listar reservas de cliente. Persistencia concreta, seed, endpoints e sincronizacao implementada ainda estao pendentes.
+- Os casos de uso, persistencia EF Core InMemory, seed deterministico e lock em memoria por produto foram implementados. Endpoints HTTP e worker de expiracao ainda estao pendentes.
 - O enunciado original esta preservado em [Desafio_NET_Core.pdf](Desafio_NET_Core.pdf).
 - As decisoes e o fluxo de desenvolvimento ficam detalhados em [specs/00-processo-e-indice.md](specs/00-processo-e-indice.md).
 
@@ -83,10 +83,10 @@ backend/
 
 ## Fora de escopo neste momento
 
-- Implementar endpoints ou seed de produtos.
+- Implementar endpoints de negocio.
 - Autenticacao/autorizacao.
 - PostgreSQL, migrations, Docker, observabilidade ou integracoes externas.
 
 ## Proximo passo sugerido
 
-Seguir a ordem de `docs/specs/00-processo-e-indice.md`: persistencia/concorrencia, HTTP e testes; implementar o worker de expiracao por ultimo.
+Seguir a ordem de `docs/specs/00-processo-e-indice.md`: HTTP e testes; implementar o worker de expiracao por ultimo.

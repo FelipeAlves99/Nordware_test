@@ -29,7 +29,7 @@ public sealed class ListProductsQueryHandler(
             var activeReservations = await dbContext.Reservations
                 .Where(reservation =>
                     reservation.ProductId == product.Id &&
-                    reservation.Status.Id == ReservationStatus.Active.Id &&
+                    reservation.StatusId == ReservationStatus.Active.Id &&
                     reservation.ExpiresAtUtc > nowUtc)
                 .ToListAsync(cancellationToken);
 

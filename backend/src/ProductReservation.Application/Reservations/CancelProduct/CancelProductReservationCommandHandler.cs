@@ -40,7 +40,7 @@ public sealed class CancelProductReservationCommandHandler(
             .SingleOrDefaultAsync(item =>
                 item.ProductId == request.ProductId &&
                 item.CustomerId == request.CustomerId &&
-                item.Status.Id == ReservationStatus.Active.Id,
+                item.StatusId == ReservationStatus.Active.Id,
                 cancellationToken);
 
         reservation?.Cancel(nowUtc);

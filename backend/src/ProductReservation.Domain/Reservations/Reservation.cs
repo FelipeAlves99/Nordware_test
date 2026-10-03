@@ -9,7 +9,7 @@ public sealed class Reservation
     private Reservation()
     {
         Id = Guid.NewGuid();
-        Status = ReservationStatus.Active;
+        StatusId = ReservationStatus.Active.Id;
     }
 
     [SetsRequiredMembers]
@@ -38,7 +38,7 @@ public sealed class Reservation
         Quantity = quantity;
         CreatedAtUtc = now;
         ExpiresAtUtc = now.Add(ReservationDuration);
-        Status = ReservationStatus.Active;
+        StatusId = ReservationStatus.Active.Id;
     }
 
     public Guid Id { get; }
@@ -53,7 +53,9 @@ public sealed class Reservation
 
     public DateTimeOffset ExpiresAtUtc { get; private set; }
 
-    public ReservationStatus Status { get; private set; }
+    public string StatusId { get; private set; }
+
+    public ReservationStatus Status => ReservationStatus.FromId(StatusId);
 
     public DateTimeOffset? CancelledAtUtc { get; private set; }
 
@@ -61,17 +63,17 @@ public sealed class Reservation
 
     public bool IsActiveAt(DateTimeOffset nowUtc)
     {
-        return Status == ReservationStatus.Active && nowUtc < ExpiresAtUtc;
+        return StatusId == ReservationStatus.Active.Id && nowUtc < ExpiresAtUtc;
     }
 
     public bool TryExpire(DateTimeOffset nowUtc)
     {
-        if (Status != ReservationStatus.Active || nowUtc < ExpiresAtUtc)
+        if (StatusId != ReservationStatus.Active.Id || nowUtc < ExpiresAtUtc)
         {
             return false;
         }
 
-        Status = ReservationStatus.Expired;
+        StatusId = ReservationStatus.Expired.Id;
         ExpiredAtUtc = nowUtc;
         return true;
     }
@@ -83,7 +85,7 @@ public sealed class Reservation
             return false;
         }
 
-        Status = ReservationStatus.Cancelled;
+        StatusId = ReservationStatus.Cancelled.Id;
         CancelledAtUtc = nowUtc;
         return true;
     }
