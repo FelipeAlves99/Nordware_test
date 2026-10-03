@@ -9,6 +9,7 @@ public sealed class Product
     {
     }
 
+    [SetsRequiredMembers]
     public Product(string name, int totalQuantity)
     {
         if (totalQuantity < 0)

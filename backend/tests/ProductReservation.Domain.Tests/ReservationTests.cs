@@ -31,15 +31,16 @@ public sealed class ReservationTests
     }
 
     [Fact]
-    public void Cancel_AfterExpiration_MarksReservationAsExpiredInsteadOfCancelled()
+    public void Cancel_AfterExpiration_DoesNotChangeStateUntilExpirationIsProcessed()
     {
         var reservation = CreateReservation();
 
         var cancelled = reservation.Cancel(reservation.ExpiresAtUtc);
 
         Assert.False(cancelled);
-        Assert.Equal("Expired", reservation.Status.Id);
+        Assert.Equal("Active", reservation.Status.Id);
         Assert.Null(reservation.CancelledAtUtc);
+        Assert.Null(reservation.ExpiredAtUtc);
     }
 
     [Fact]

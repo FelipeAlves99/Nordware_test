@@ -78,12 +78,7 @@ public sealed class Reservation
 
     public bool Cancel(DateTimeOffset nowUtc)
     {
-        if (Status != ReservationStatus.Active)
-        {
-            return false;
-        }
-
-        if (TryExpire(nowUtc))
+        if (!IsActiveAt(nowUtc))
         {
             return false;
         }

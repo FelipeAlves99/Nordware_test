@@ -1,0 +1,6 @@
+namespace ProductReservation.Application.Common.Exceptions;
+
+public sealed class BusinessConflictException(string code, string message) : Exception(message)
+{
+    public string Code { get; } = code;
+}
