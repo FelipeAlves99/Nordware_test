@@ -89,4 +89,4 @@ backend/
 
 ## Proximo passo sugerido
 
-Seguir a ordem de `docs/specs/00-processo-e-indice.md`: concluir a Spec 7, reforcando testes de entrega e finalizando a documentacao do README.
+As specs de implementacao estao concluidas. Para novas funcionalidades, atualize primeiro a spec mais proxima do assunto e acrescente cenarios de aceitacao antes de implementar.
