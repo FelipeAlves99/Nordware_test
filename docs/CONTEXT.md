@@ -5,7 +5,7 @@
 ## Estado atual
 
 - O modelo de dominio foi implementado: `Customer`, `Product`, `Reservation`, estados de reserva e calculo de disponibilidade. Ha testes puros para invariantes, estados, cancelamento e expiracao.
-- Os casos de uso, persistencia EF Core InMemory, seed deterministico e lock em memoria por produto foram implementados. Endpoints HTTP e worker de expiracao ainda estao pendentes.
+- O modelo de dominio, casos de uso, persistencia EF Core InMemory, seed deterministico, lock em memoria por produto, job Quartz de expiracao e endpoints HTTP foram implementados. Ha testes para dominio, aplicacao, infraestrutura e contrato/concorrencia da API.
 - O enunciado original esta preservado em [Desafio_NET_Core.pdf](Desafio_NET_Core.pdf).
 - As decisoes e o fluxo de desenvolvimento ficam detalhados em [specs/00-processo-e-indice.md](specs/00-processo-e-indice.md).
 
@@ -23,7 +23,7 @@ Construir uma API REST em C# / .NET 10 para que clientes de uma plataforma de e-
 - Cada reserva dura 72 horas.
 - Cada produto possui estoque; uma reserva informa quantas unidades pretende reter e so e aceita quando houver saldo suficiente no instante da solicitacao.
 - Concorrencia: reservas simultaneas para o mesmo produto nao podem comprometer mais unidades que o estoque. Uma solicitacao sem saldo suficiente recebe erro de produto indisponivel.
-- Reservas vencidas deixam de consumir saldo pela comparacao com `ExpiresAtUtc`; a transicao persistida para `Expired` sera responsabilidade de um worker, implementado na etapa final. Casos de uso nao expiram reservas.
+- Reservas vencidas deixam de consumir saldo pela comparacao com `ExpiresAtUtc`; um job Quartz persiste a transicao para `Expired` em execucoes horarias, sem expirar nos casos de uso.
 - O cancelamento nao exige autorizacao; identifica a reserva pelo produto e pelo `X-Customer-Id`, e e idempotente. Reservas expiradas ou canceladas permanecem armazenadas como exclusao logica.
 
 ## Requisitos tecnicos
@@ -66,7 +66,7 @@ backend/
 
 ## Convenções do projeto
 
-- Minimal APIs, organizadas por grupos de endpoint, sem regra de negocio nos endpoints.
+- Minimal APIs, organizadas por grupos de endpoint, sem regra de negocio nos endpoints; cada endpoint usa o command do handler como request e o result como response, sem DTOs duplicados na API.
 - CQRS com MediatR: cada comando ou query tera seu proprio diretorio e arquivos de request, handler e validator quando aplicavel.
 - DI por extensoes `AddApplication()` e `AddInfrastructure()`.
 - `IAppDbContext` na Application e `AppDbContext` na Infrastructure; configuracoes EF separadas por entidade.
@@ -83,10 +83,9 @@ backend/
 
 ## Fora de escopo neste momento
 
-- Implementar endpoints de negocio.
 - Autenticacao/autorizacao.
 - PostgreSQL, migrations, Docker, observabilidade ou integracoes externas.
 
 ## Proximo passo sugerido
 
-Seguir a ordem de `docs/specs/00-processo-e-indice.md`: HTTP e testes; implementar o worker de expiracao por ultimo.
+Seguir a ordem de `docs/specs/00-processo-e-indice.md`: concluir a Spec 7, reforcando testes de entrega e finalizando a documentacao do README.

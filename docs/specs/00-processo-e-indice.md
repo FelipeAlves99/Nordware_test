@@ -16,8 +16,8 @@ Esta pasta substitui qualquer uso futuro de ADRs. Cada spec combina a decisao ne
 | 3 | [03-casos-de-uso.md](03-casos-de-uso.md) | Contratos de comandos e consultas definidos. |
 | 4 | [04-persistencia-e-concorrencia.md](04-persistencia-e-concorrencia.md) | EF InMemory, seed e protecao do estoque. |
 | 5 | [06-contrato-http.md](06-contrato-http.md) | Endpoints e respostas estaveis. |
-| 6 | [07-testes-e-entrega.md](07-testes-e-entrega.md) | Suite de testes e README completos, exceto o worker. |
-| 7 | [05-expiracao-por-worker.md](05-expiracao-por-worker.md) | Implementacao final do worker de expiracao. |
+| 6 | [07-testes-e-entrega.md](07-testes-e-entrega.md) | Suite de testes e README completos; expiracao coberta pela Spec 5. |
+| 7 | [05-expiracao-por-worker.md](05-expiracao-por-worker.md) | Job Quartz horario, transicao persistida e testes de expiracao. |
 
 ## Decisoes aceitas
 
@@ -27,7 +27,7 @@ Esta pasta substitui qualquer uso futuro de ADRs. Cada spec combina a decisao ne
 | D-02 | Sem autenticacao, a identidade do cliente vem do header `X-Customer-Id`. Isso nao e seguranca. |
 | D-03 | Produtos possuem estoque e a solicitacao informa a quantidade a reservar. |
 | D-04 | Cancelamento e permitido sem autorizacao, e idempotente; cancelamentos e expiracoes usam exclusao logica. |
-| D-05 | Reservas vencidas deixam de consumir saldo pela data; um worker persiste a transicao para `Expired`. A implementacao do worker fica para a etapa final. |
+| D-05 | Reservas vencidas deixam de consumir saldo pela data; um job Quartz persiste a transicao para `Expired` em lotes horarios. |
 | D-06 | A aplicacao, e nao o provider InMemory, protege o estoque contra concorrencia por produto. |
 | D-07 | A aplicacao inicia com seed de clientes e produtos; `Produto A` possui 10 unidades. |
 | D-08 | A entrega so esta pronta com testes de dominio, aplicacao e API, incluindo concorrencia e expiracao pelo worker, alem do README. |
