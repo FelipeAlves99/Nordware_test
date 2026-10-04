@@ -8,6 +8,8 @@ Os casos de uso, persistencia InMemory, seed, protecao de concorrencia por produ
 
 ## Executar
 
+Pre-requisito: .NET SDK 10 instalado.
+
 Na pasta `backend/`:
 
 ```powershell
@@ -18,6 +20,16 @@ dotnet run --project src/ProductReservation.Api
 ```
 
 Na inicializacao, a API cria o banco em memoria e aplica o seed, incluindo uma reserva ativa de uma unidade do Produto A que vence no proximo minuto. O worker nao a expira no disparo imediato; o cron processa seu vencimento no minuto seguinte. O processo reinicia o banco quando a aplicacao para.
+
+## Executar com Docker
+
+Com Docker Desktop (ou Docker Engine) e Docker Compose v2 instalados, nao e necessario instalar o .NET SDK na maquina. Na raiz do repositorio, execute:
+
+```powershell
+docker compose up
+```
+
+Na primeira execucao, o Compose compila a imagem e inicia a API em `http://localhost:5000`; a interface Scalar fica em `http://localhost:5000/scalar`. Para encerrar, pressione `Ctrl+C` e execute `docker compose down`. O banco e InMemory, portanto os dados voltam ao seed quando o container e recriado. Depois de alterar o codigo, use `docker compose up --build` para reconstruir a imagem.
 
 Commands e queries passam pela pipeline MediatR de logging, que registra o tipo do caso de uso, sua duracao e falhas sem gravar o conteudo dos requests. Os logs sao enviados ao console.
 
@@ -36,14 +48,26 @@ O cron da expiracao pode ser ajustado em `src/ProductReservation.Api/appsettings
 
 O status do produto e `Available` enquanto houver saldo, `Reserved` quando todo o estoque positivo estiver reservado e `Unavailable` quando o estoque total for zero.
 
-Exemplo de reserva:
+Exemplo de consulta, reserva, listagem das reservas do cliente e cancelamento. O ID retornado pela reserva e usado para cancelar exatamente essa reserva; o `X-Customer-Id` do DELETE deve corresponder ao dono.
 
 ```powershell
-Invoke-RestMethod -Method Post `
-  -Uri http://localhost:5000/products/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/reserve `
-  -Headers @{ 'X-Customer-Id' = '11111111-1111-1111-1111-111111111111' } `
+$baseUrl = 'http://localhost:5000'
+$customerId = '11111111-1111-1111-1111-111111111111'
+$productId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+
+Invoke-RestMethod -Method Get -Uri "$baseUrl/products"
+
+$reservation = Invoke-RestMethod -Method Post `
+  -Uri "$baseUrl/products/$productId/reserve" `
+  -Headers @{ 'X-Customer-Id' = $customerId } `
   -ContentType 'application/json' `
   -Body '{"quantity":3}'
+
+Invoke-RestMethod -Method Get -Uri "$baseUrl/customer/$customerId/reservations"
+
+Invoke-RestMethod -Method Delete `
+  -Uri "$baseUrl/reservations/$($reservation.id)" `
+  -Headers @{ 'X-Customer-Id' = $customerId }
 ```
 
 Erros seguem Problem Details (`application/problem+json`) e incluem um `code` estavel, por exemplo `CustomerIdRequired`, `ProductNotFound`, `ProductUnavailable` ou `ValidationError`. A identidade em `X-Customer-Id` e apenas declarada pelo chamador: nao ha autenticacao; no cancelamento, o header funciona como permissao declarativa e precisa corresponder ao dono da reserva, mas pode ser falsificado. Divergencias retornam `400 InvalidRequest` sem revelar o motivo.
