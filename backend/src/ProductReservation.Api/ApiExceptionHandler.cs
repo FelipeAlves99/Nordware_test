@@ -31,6 +31,11 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
                 conflictException.Code,
                 "Request conflict",
                 conflictException.Message),
+            ForbiddenException => (
+                StatusCodes.Status400BadRequest,
+                "InvalidRequest",
+                "Invalid request",
+                "The request could not be completed."),
             DomainException domainException => (
                 StatusCodes.Status400BadRequest,
                 "InvalidRequest",

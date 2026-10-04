@@ -17,17 +17,17 @@ Esta pasta substitui qualquer uso futuro de ADRs. Cada spec combina a decisao ne
 | 4 | [04-persistencia-e-concorrencia.md](04-persistencia-e-concorrencia.md) | EF InMemory, seed e protecao do estoque. |
 | 5 | [06-contrato-http.md](06-contrato-http.md) | Endpoints e respostas estaveis. |
 | 6 | [07-testes-e-entrega.md](07-testes-e-entrega.md) | Suite de testes e README completos; expiracao coberta pela Spec 5. |
-| 7 | [05-expiracao-por-worker.md](05-expiracao-por-worker.md) | Job Quartz horario, transicao persistida e testes de expiracao. |
+| 7 | [05-expiracao-por-worker.md](05-expiracao-por-worker.md) | Job Quartz configuravel, transicao persistida e testes de expiracao. |
 
 ## Decisoes aceitas
 
 | ID | Decisao |
 | --- | --- |
 | D-01 | `CONTEXT.md` e as specs aceitas sao a fonte de verdade; em conflito, a spec mais especifica prevalece. |
-| D-02 | Sem autenticacao, a identidade do cliente vem do header `X-Customer-Id`. Isso nao e seguranca. |
+| D-02 | Sem autenticacao, a identidade declarada do cliente vem de `X-Customer-Id`; no cancelamento, esse header e comparado ao dono da reserva como permissao declarativa, mas pode ser falsificado e nao e seguranca real. |
 | D-03 | Produtos possuem estoque e a solicitacao informa a quantidade a reservar. |
-| D-04 | Cancelamento e permitido sem autorizacao, e idempotente; cancelamentos e expiracoes usam exclusao logica. |
-| D-05 | Reservas vencidas deixam de consumir saldo pela data; um job Quartz persiste a transicao para `Expired` em lotes horarios. |
+| D-04 | Cancelamento exige `X-Customer-Id` correspondente ao dono da reserva, e e idempotente para IDs inexistentes ou estados terminais; cancelamentos e expiracoes usam exclusao logica. |
+| D-05 | Reservas vencidas deixam de consumir saldo pela data; um job Quartz persiste a transicao para `Expired` em lotes, com frequencia configurada em `appsettings.json`. |
 | D-06 | A aplicacao, e nao o provider InMemory, protege o estoque contra concorrencia por produto. |
 | D-07 | A aplicacao inicia com seed de clientes e produtos; `Produto A` possui 10 unidades. |
 | D-08 | A entrega so esta pronta com testes de dominio, aplicacao e API, incluindo concorrencia e expiracao pelo worker, alem do README. |
@@ -41,4 +41,4 @@ Esta pasta substitui qualquer uso futuro de ADRs. Cada spec combina a decisao ne
 
 ## Convencao operacional adotada
 
-Como o endpoint de cancelamento recebe somente o produto e o header do cliente, existe no maximo uma reserva **ativa** para o mesmo par cliente-produto. Para alterar a quantidade, o cliente cancela a reserva ativa e cria outra. Essa convencao evita um identificador de reserva adicional fora do contrato original.
+Cada reserva possui um ID proprio e pode ser cancelada individualmente por esse ID. Multiplas reservas ativas podem pertencer ao mesmo cliente e produto, limitadas apenas pelo saldo agregado. Sem autenticacao, qualquer consumidor que conheca um ID pode solicitar o cancelamento.

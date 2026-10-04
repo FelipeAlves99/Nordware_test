@@ -2,7 +2,6 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProductReservation.Application.Common.Exceptions;
 using ProductReservation.Application.Common.Interfaces;
-using ProductReservation.Domain.Reservations;
 
 namespace ProductReservation.Application.Reservations.CancelProduct;
 
@@ -16,36 +15,48 @@ public sealed class CancelProductReservationCommandHandler(
         CancelProductReservationCommand request,
         CancellationToken cancellationToken)
     {
-        var customerExists = await dbContext.Customers
-            .AnyAsync(customer => customer.Id == request.CustomerId, cancellationToken);
+        var reservationDetails = await dbContext.Reservations
+            .Where(reservation => reservation.Id == request.ReservationId)
+            .Select(reservation => new
+            {
+                reservation.ProductId,
+                reservation.CustomerId
+            })
+            .SingleOrDefaultAsync(cancellationToken);
 
-        if (!customerExists)
+        if (reservationDetails is null)
         {
-            throw new ResourceNotFoundException("Customer", request.CustomerId);
+            return Unit.Value;
         }
 
-        var productExists = await dbContext.Products
-            .AnyAsync(product => product.Id == request.ProductId, cancellationToken);
+        EnsureCustomerPermission(reservationDetails.CustomerId, request.CustomerId);
 
-        if (!productExists)
-        {
-            throw new ResourceNotFoundException("Product", request.ProductId);
-        }
-
-        await using var productLockHandle = await productLock.AcquireAsync(request.ProductId, cancellationToken);
+        await using var productLockHandle = await productLock.AcquireAsync(
+            reservationDetails.ProductId,
+            cancellationToken);
 
         var nowUtc = timeProvider.GetUtcNow();
 
         var reservation = await dbContext.Reservations
-            .SingleOrDefaultAsync(item =>
-                item.ProductId == request.ProductId &&
-                item.CustomerId == request.CustomerId &&
-                item.StatusId == ReservationStatus.Active.Id,
+            .SingleOrDefaultAsync(item => item.Id == request.ReservationId,
                 cancellationToken);
 
-        reservation?.Cancel(nowUtc);
+        if (reservation is not null)
+        {
+            EnsureCustomerPermission(reservation.CustomerId, request.CustomerId);
+            reservation.Cancel(nowUtc);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Unit.Value;
+    }
+
+    private static void EnsureCustomerPermission(Guid reservationCustomerId, Guid requestCustomerId)
+    {
+        if (reservationCustomerId != requestCustomerId)
+        {
+            throw new ForbiddenException("Customer id is not allowed to cancel this reservation.");
+        }
     }
 }

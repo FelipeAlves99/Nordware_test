@@ -23,6 +23,23 @@ public sealed class ProductReservationApiTests
     private const string ProductCId = "cccccccc-cccc-cccc-cccc-cccccccccccc";
 
     [Fact]
+    public async Task ApiDocumentation_ExposesOpenApiDocumentAndScalarUiInDevelopment()
+    {
+        using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+
+        var openApiResponse = await client.GetAsync("/openapi/v1.json");
+        var scalarResponse = await client.GetAsync("/scalar");
+
+        Assert.Equal(HttpStatusCode.OK, openApiResponse.StatusCode);
+        using var openApiDocument = JsonDocument.Parse(await openApiResponse.Content.ReadAsStringAsync());
+        Assert.True(openApiDocument.RootElement.GetProperty("paths").TryGetProperty("/products", out _));
+        Assert.True(openApiDocument.RootElement.GetProperty("paths").TryGetProperty("/reservations/{reservationId}", out _));
+        Assert.Equal(HttpStatusCode.OK, scalarResponse.StatusCode);
+        Assert.Contains("Product Reservation API", await scalarResponse.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
     public async Task GetProducts_ReturnsQuantitiesAndStatuses()
     {
         using var factory = new ApiFactory();
@@ -31,7 +48,11 @@ public sealed class ProductReservationApiTests
         var reservedProductResponse = await client.PostAsJsonAsync(
             $"/products/{ProductAId}/reserve",
             new ReserveProductCommand(Guid.Empty, Guid.Empty, 1));
+        var fullyReservedProductResponse = await client.PostAsJsonAsync(
+            $"/products/{ProductBId}/reserve",
+            new ReserveProductCommand(Guid.Empty, Guid.Empty, 1));
         Assert.Equal(HttpStatusCode.Created, reservedProductResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, fullyReservedProductResponse.StatusCode);
 
         using var productsBody = JsonDocument.Parse(await client.GetStringAsync("/products"));
         var products = productsBody.RootElement.EnumerateArray().ToArray();
@@ -41,11 +62,11 @@ public sealed class ProductReservationApiTests
             {
                 Assert.Equal("Produto A", product.GetProperty("name").GetString());
                 Assert.Equal(10, product.GetProperty("totalQuantity").GetInt32());
-                Assert.Equal(1, product.GetProperty("reservedQuantity").GetInt32());
-                Assert.Equal(9, product.GetProperty("availableQuantity").GetInt32());
-                Assert.Equal("Reserved", product.GetProperty("status").GetString());
+                Assert.Equal(2, product.GetProperty("reservedQuantity").GetInt32());
+                Assert.Equal(8, product.GetProperty("availableQuantity").GetInt32());
+                Assert.Equal("Available", product.GetProperty("status").GetString());
             },
-            product => Assert.Equal("Available", product.GetProperty("status").GetString()),
+            product => Assert.Equal("Reserved", product.GetProperty("status").GetString()),
             product => Assert.Equal("Unavailable", product.GetProperty("status").GetString()));
     }
 
@@ -144,7 +165,45 @@ public sealed class ProductReservationApiTests
     }
 
     [Fact]
-    public async Task DeleteReservation_IsIdempotentAndCustomerQueryReturnsPersistedStatus()
+    public async Task DeleteReservation_ByIdIsIdempotentAndLeavesOtherReservationsUnchanged()
+    {
+        using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Customer-Id", CustomerAId);
+
+        var firstReserveResponse = await client.PostAsJsonAsync(
+            $"/products/{ProductAId}/reserve",
+            new ReserveProductCommand(Guid.Empty, Guid.Empty, 2));
+        var secondReserveResponse = await client.PostAsJsonAsync(
+            $"/products/{ProductAId}/reserve",
+            new ReserveProductCommand(Guid.Empty, Guid.Empty, 3));
+        Assert.Equal(HttpStatusCode.Created, firstReserveResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, secondReserveResponse.StatusCode);
+
+        using var firstReservationBody = JsonDocument.Parse(await firstReserveResponse.Content.ReadAsStringAsync());
+        using var secondReservationBody = JsonDocument.Parse(await secondReserveResponse.Content.ReadAsStringAsync());
+        var firstReservationId = firstReservationBody.RootElement.GetProperty("id").GetString();
+        var secondReservationId = secondReservationBody.RootElement.GetProperty("id").GetString();
+
+        var firstDelete = await client.DeleteAsync($"/reservations/{firstReservationId}");
+        var repeatedDelete = await client.DeleteAsync($"/reservations/{firstReservationId}");
+        Assert.Equal(HttpStatusCode.NoContent, firstDelete.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, repeatedDelete.StatusCode);
+
+        using var reservationsBody = JsonDocument.Parse(
+            await client.GetStringAsync($"/customer/{CustomerAId}/reservations"));
+        var reservations = reservationsBody.RootElement.EnumerateArray().ToArray();
+        var cancelledReservation = Assert.Single(reservations,
+            item => item.GetProperty("id").GetString() == firstReservationId);
+        var stillActiveReservation = Assert.Single(reservations,
+            item => item.GetProperty("id").GetString() == secondReservationId);
+        Assert.Equal("Cancelled", cancelledReservation.GetProperty("status").GetString());
+        Assert.NotEqual(JsonValueKind.Null, cancelledReservation.GetProperty("cancelledAtUtc").ValueKind);
+        Assert.Equal("Active", stillActiveReservation.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task DeleteReservation_RequiresCustomerHeaderAndMatchingOwner()
     {
         using var factory = new ApiFactory();
         using var client = factory.CreateClient();
@@ -152,19 +211,25 @@ public sealed class ProductReservationApiTests
 
         var reserveResponse = await client.PostAsJsonAsync(
             $"/products/{ProductAId}/reserve",
-            new ReserveProductCommand(Guid.Empty, Guid.Empty, 2));
+            new { quantity = 1 });
         Assert.Equal(HttpStatusCode.Created, reserveResponse.StatusCode);
+        using var reservationBody = JsonDocument.Parse(await reserveResponse.Content.ReadAsStringAsync());
+        var reservationId = reservationBody.RootElement.GetProperty("id").GetString();
 
-        var firstDelete = await client.DeleteAsync($"/products/{ProductAId}/reserve");
-        var repeatedDelete = await client.DeleteAsync($"/products/{ProductAId}/reserve");
-        Assert.Equal(HttpStatusCode.NoContent, firstDelete.StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, repeatedDelete.StatusCode);
+        client.DefaultRequestHeaders.Remove("X-Customer-Id");
+        var missingHeaderResponse = await client.DeleteAsync($"/reservations/{reservationId}");
+        Assert.Equal(HttpStatusCode.BadRequest, missingHeaderResponse.StatusCode);
+        Assert.Equal("CustomerIdRequired", await ReadProblemCodeAsync(missingHeaderResponse));
 
-        using var reservationsBody = JsonDocument.Parse(
-            await client.GetStringAsync($"/customer/{CustomerAId}/reservations"));
-        var reservation = Assert.Single(reservationsBody.RootElement.EnumerateArray());
-        Assert.Equal("Cancelled", reservation.GetProperty("status").GetString());
-        Assert.NotEqual(JsonValueKind.Null, reservation.GetProperty("cancelledAtUtc").ValueKind);
+        client.DefaultRequestHeaders.Add("X-Customer-Id", CustomerBId);
+        var wrongCustomerResponse = await client.DeleteAsync($"/reservations/{reservationId}");
+        Assert.Equal(HttpStatusCode.BadRequest, wrongCustomerResponse.StatusCode);
+        Assert.Equal("InvalidRequest", await ReadProblemCodeAsync(wrongCustomerResponse));
+
+        client.DefaultRequestHeaders.Remove("X-Customer-Id");
+        client.DefaultRequestHeaders.Add("X-Customer-Id", CustomerAId);
+        var ownerResponse = await client.DeleteAsync($"/reservations/{reservationId}");
+        Assert.Equal(HttpStatusCode.NoContent, ownerResponse.StatusCode);
     }
 
     [Fact]
@@ -185,7 +250,50 @@ public sealed class ProductReservationApiTests
         using var productsBody = JsonDocument.Parse(await client.GetStringAsync("/products"));
         var product = Assert.Single(productsBody.RootElement.EnumerateArray(),
             item => item.GetProperty("id").GetString() == ProductAId);
-        Assert.Equal(6, product.GetProperty("reservedQuantity").GetInt32());
+        Assert.Equal(7, product.GetProperty("reservedQuantity").GetInt32());
+    }
+
+    [Fact]
+    public async Task SyntheticConcurrentReservations_NeverExceedProductStock()
+    {
+        using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+
+        const int requestCount = 100;
+        var requests = Enumerable.Range(0, requestCount)
+            .Select(_ => CreateReserveRequest(CustomerAId, quantity: 1))
+            .ToArray();
+        HttpResponseMessage[]? responses = null;
+
+        try
+        {
+            responses = await Task.WhenAll(requests.Select(client.SendAsync));
+
+            Assert.Equal(9, responses.Count(response => response.StatusCode == HttpStatusCode.Created));
+            Assert.Equal(91, responses.Count(response => response.StatusCode == HttpStatusCode.Conflict));
+
+            using var productsBody = JsonDocument.Parse(await client.GetStringAsync("/products"));
+            var product = Assert.Single(productsBody.RootElement.EnumerateArray(),
+                item => item.GetProperty("id").GetString() == ProductAId);
+            Assert.Equal(10, product.GetProperty("reservedQuantity").GetInt32());
+            Assert.Equal(0, product.GetProperty("availableQuantity").GetInt32());
+            Assert.Equal("Reserved", product.GetProperty("status").GetString());
+        }
+        finally
+        {
+            foreach (var request in requests)
+            {
+                request.Dispose();
+            }
+
+            if (responses is not null)
+            {
+                foreach (var response in responses)
+                {
+                    response.Dispose();
+                }
+            }
+        }
     }
 
     private static HttpRequestMessage CreateReserveRequest(string customerId, int quantity)
@@ -215,9 +323,16 @@ public sealed class ProductReservationApiTests
                 services.RemoveAll<AppDbContext>();
                 services.RemoveAll<DbContextOptions<AppDbContext>>();
                 services.RemoveAll<IAppDbContext>();
+                services.RemoveAll<TimeProvider>();
                 services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(_databaseName));
                 services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
+                services.AddSingleton<TimeProvider>(new FixedTimeProvider(DateTimeOffset.UtcNow));
             });
         }
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset nowUtc) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => nowUtc;
     }
 }

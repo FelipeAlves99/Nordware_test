@@ -42,7 +42,7 @@ public sealed class ListProductsQueryHandlerTests
         Assert.Equal(10, first.TotalQuantity);
         Assert.Equal(2, first.ReservedQuantity);
         Assert.Equal(8, first.AvailableQuantity);
-        Assert.Equal("Reserved", first.Status);
+        Assert.Equal("Available", first.Status);
         Assert.Equal(1, result[1].AvailableQuantity);
         Assert.Equal("Available", result[1].Status);
     }

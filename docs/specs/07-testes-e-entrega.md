@@ -12,8 +12,9 @@
 
 ## Testes de aplicacao
 
-- Cliente/produto inexistentes, header invalido, reserva duplicada e saldo insuficiente.
+- Cliente/produto inexistentes, header invalido, multiplas reservas para o mesmo cliente-produto e saldo insuficiente agregado.
 - Cancelamento libera saldo, e repeticao e idempotente.
+- Cancelar por ID afeta apenas aquela reserva quando ha varias reservas do mesmo cliente para o produto.
 - Relogio controlado verifica que uma reserva vencida deixa de consumir saldo sem que o caso de uso altere seu estado persistido.
 - Cancelamento apos o vencimento nao muda o estado para `Cancelled`; a transicao para `Expired` e coberta com os testes do worker na etapa final.
 - Seed contem `Produto A` com 10 unidades e clientes utilizaveis.

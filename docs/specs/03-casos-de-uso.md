@@ -12,15 +12,14 @@ Fluxo:
 1. Validar header e quantidade positiva.
 2. Localizar cliente e produto; retornar nao encontrado se um deles nao existir.
 3. Adquirir exclusao por produto e recalcular o saldo dentro da mesma secao critica, contando somente reservas `Active` com `ExpiresAtUtc` posterior ao instante atual.
-4. Rejeitar reserva ativa ja existente para o mesmo cliente-produto.
-5. Rejeitar quantidade acima do saldo; caso contrario, criar a reserva ativa com vencimento em 72 horas.
-6. Persistir e devolver a representacao da reserva criada.
+4. Rejeitar quantidade acima do saldo; caso contrario, criar uma reserva ativa independente com vencimento em 72 horas. Reservas anteriores do mesmo cliente e produto nao impedem outra solicitacao.
+5. Persistir e devolver a representacao da reserva criada, incluindo seu ID individual.
 
 ## Cancelar reserva
 
-Entrada: `ProductId` e `CustomerId` vindo de `X-Customer-Id`. O horario para validar se a reserva ainda pode ser cancelada vem de `TimeProvider` configurado no servidor.
+Entrada: `ReservationId` e `CustomerId` obtido do header `X-Customer-Id`. O horario para validar se a reserva ainda pode ser cancelada vem de `TimeProvider` configurado no servidor.
 
-O caso de uso cancela a reserva do par cliente-produto somente se ainda estiver dentro do prazo. Uma reserva vencida nao e cancelada nem expirada pelo caso de uso; o worker persiste a transicao depois. Ausencia de reserva cancelavel e sucesso idempotente; cliente ou produto inexistente continua sendo recurso nao encontrado.
+O caso de uso localiza a reserva e verifica que ela pertence ao cliente declarado. Um cliente diferente recebe erro generico `400 Bad Request` e a reserva nao muda. A exclusao por produto e adquirida usando o produto associado a reserva. Uma reserva vencida nao e cancelada nem expirada pelo caso de uso; o worker persiste a transicao depois. ID inexistente ou reserva terminal e sucesso idempotente.
 
 ## Abstracoes da Application
 
@@ -42,5 +41,4 @@ O caso de uso retorna as reservas do cliente, inclusive as terminalmente cancela
 - Quantidade ausente, zero ou negativa: validacao invalida.
 - Header de cliente ausente ou invalido: validacao invalida.
 - Cliente ou produto ausente: nao encontrado.
-- Reserva ativa ja existente no mesmo cliente-produto: conflito.
 - Saldo insuficiente: conflito por produto indisponivel.

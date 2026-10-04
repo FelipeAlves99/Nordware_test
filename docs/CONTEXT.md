@@ -5,7 +5,7 @@
 ## Estado atual
 
 - O modelo de dominio foi implementado: `Customer`, `Product`, `Reservation`, estados de reserva e calculo de disponibilidade. Ha testes puros para invariantes, estados, cancelamento e expiracao.
-- O modelo de dominio, casos de uso, persistencia EF Core InMemory, seed deterministico, lock em memoria por produto, job Quartz de expiracao e endpoints HTTP foram implementados. Ha testes para dominio, aplicacao, infraestrutura e contrato/concorrencia da API.
+- O modelo de dominio, casos de uso, persistencia EF Core InMemory, seed deterministico (incluindo reserva de demonstracao vencendo no proximo minuto), lock em memoria por produto, job Quartz de expiracao, pipeline MediatR de logging e endpoints HTTP foram implementados. Ha testes para dominio, aplicacao, infraestrutura e contrato/concorrencia da API.
 - O enunciado original esta preservado em [Desafio_NET_Core.pdf](Desafio_NET_Core.pdf).
 - As decisoes e o fluxo de desenvolvimento ficam detalhados em [specs/00-processo-e-indice.md](specs/00-processo-e-indice.md).
 
@@ -18,13 +18,14 @@ Construir uma API REST em C# / .NET 10 para que clientes de uma plataforma de e-
 - Entidades principais: `Customer`, `Product` e `Reservation`.
 - Listar as reservas de um cliente: `GET /customer/{id_customer}/reservations`.
 - Reservar um produto: `POST /products/{id}/reserve`, com a quantidade no corpo e o cliente no header temporario `X-Customer-Id`.
-- Cancelar uma reserva ativa antes do vencimento (opcional): `DELETE /products/{id}/reserve`.
+- Cancelar uma reserva ativa antes do vencimento (opcional): `DELETE /reservations/{reservationId}`.
 - Listar produtos e seus status (`disponivel`, `reservado` ou `indisponivel`): `GET /products`.
 - Cada reserva dura 72 horas.
 - Cada produto possui estoque; uma reserva informa quantas unidades pretende reter e so e aceita quando houver saldo suficiente no instante da solicitacao.
 - Concorrencia: reservas simultaneas para o mesmo produto nao podem comprometer mais unidades que o estoque. Uma solicitacao sem saldo suficiente recebe erro de produto indisponivel.
-- Reservas vencidas deixam de consumir saldo pela comparacao com `ExpiresAtUtc`; um job Quartz persiste a transicao para `Expired` em execucoes horarias, sem expirar nos casos de uso.
-- O cancelamento nao exige autorizacao; identifica a reserva pelo produto e pelo `X-Customer-Id`, e e idempotente. Reservas expiradas ou canceladas permanecem armazenadas como exclusao logica.
+- Reservas vencidas deixam de consumir saldo pela comparacao com `ExpiresAtUtc`; um job Quartz persiste a transicao para `Expired` em execucoes agendadas pelo cron configurado em `appsettings.json`, sem expirar nos casos de uso.
+- Um cliente pode manter multiplas reservas do mesmo produto, respeitando o saldo agregado; status `Available` permanece enquanto houver saldo e `Reserved` indica que todo o estoque positivo esta retido.
+- O cancelamento identifica a reserva pelo proprio ID e exige `X-Customer-Id` correspondente ao cliente dono; esse header e somente uma permissao declarativa, nao autenticacao segura. IDs inexistentes e reservas terminais continuam idempotentes, e reservas canceladas/expiradas permanecem armazenadas como exclusao logica.
 
 ## Requisitos tecnicos
 
@@ -76,7 +77,7 @@ backend/
 ## Decisoes a preservar na implementacao
 
 - As rotas do enunciado sao o contrato inicial. Se for adotado versionamento `/v1`, documentar a compatibilidade antes de alterar essas rotas.
-- Enquanto nao houver autenticacao, `X-Customer-Id` e a identidade declarada pelo cliente. Ele e um improviso deliberado e nao deve ser tratado como mecanismo de seguranca.
+- Enquanto nao houver autenticacao, `X-Customer-Id` e a identidade declarada pelo cliente. No cancelamento, a API o compara ao cliente dono da reserva como permissao declarativa; como pode ser falsificado, nao deve ser tratado como mecanismo de seguranca real.
 - Como o provider InMemory nao oferece as mesmas garantias transacionais de um banco relacional, a consistencia do estoque deve ser modelada e testada explicitamente na aplicacao, com sincronizacao por produto; nao presumir que o provider resolva concorrencia sozinho.
 - O banco deve iniciar com seed de clientes e produtos, incluindo `Produto A` com 10 unidades.
 - As specs em `docs/specs/` sao a fonte detalhada das decisoes de implementacao. Atualize a spec aplicavel e este resumo quando uma decisao aceita mudar.

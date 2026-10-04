@@ -6,7 +6,7 @@ public sealed class CancelProductReservationCommandValidator : AbstractValidator
 {
     public CancelProductReservationCommandValidator()
     {
-        RuleFor(command => command.ProductId).NotEmpty();
+        RuleFor(command => command.ReservationId).NotEmpty();
         RuleFor(command => command.CustomerId).NotEmpty();
     }
 }

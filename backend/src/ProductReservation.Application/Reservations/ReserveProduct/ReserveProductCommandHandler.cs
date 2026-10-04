@@ -36,21 +36,6 @@ public sealed class ReserveProductCommandHandler(
 
         var nowUtc = timeProvider.GetUtcNow();
 
-        var activeForCustomer = await dbContext.Reservations
-            .AnyAsync(reservation =>
-                reservation.ProductId == product.Id &&
-                reservation.CustomerId == request.CustomerId &&
-                reservation.StatusId == ReservationStatus.Active.Id &&
-                reservation.ExpiresAtUtc > nowUtc,
-                cancellationToken);
-
-        if (activeForCustomer)
-        {
-            throw new BusinessConflictException(
-                "ActiveReservationExists",
-                "The customer already has an active reservation for this product.");
-        }
-
         var activeReservations = await dbContext.Reservations
             .Where(reservation =>
                 reservation.ProductId == product.Id &&

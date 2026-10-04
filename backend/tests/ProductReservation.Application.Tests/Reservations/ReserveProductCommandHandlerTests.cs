@@ -69,22 +69,24 @@ public sealed class ReserveProductCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenCustomerAlreadyHasUnexpiredReservation_ThrowsConflict()
+    public async Task Handle_WhenCustomerHasAnotherReservationForSameProduct_AllowsAdditionalQuantityWithinStock()
     {
         await using var dbContext = TestAppDbContext.Create();
         var customer = new Customer("Cliente A");
         var product = new Product("Produto A", 10);
         dbContext.Customers.Add(customer);
         dbContext.Products.Add(product);
-        TestReservations.Add(dbContext, customer.Id, product.Id, 1);
+        var firstReservation = TestReservations.Add(dbContext, customer.Id, product.Id, 5);
         await dbContext.SaveChangesAsync();
         var handler = CreateHandler(dbContext);
 
-        var exception = await Assert.ThrowsAsync<BusinessConflictException>(() => handler.Handle(
-            new ReserveProductCommand(product.Id, customer.Id, 1),
-            CancellationToken.None));
+        var result = await handler.Handle(
+            new ReserveProductCommand(product.Id, customer.Id, 5),
+            CancellationToken.None);
 
-        Assert.Equal("ActiveReservationExists", exception.Code);
+        Assert.NotEqual(firstReservation.Id, result.Id);
+        Assert.Equal(2, dbContext.Reservations.Count());
+        Assert.Equal(10, dbContext.Reservations.Sum(reservation => reservation.Quantity));
     }
 
     [Fact]

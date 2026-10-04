@@ -1,12 +1,12 @@
 # Expiracao por worker
 
 **Status:** implementada
-**Implementacao:** Quartz no host da API; job iniciado junto ao host e repetido a cada hora.
+**Implementacao:** Quartz no host da API; execucao imediata ao iniciar e cron configuravel via `appsettings.json` (padrao a cada minuto).
 **Dependencias:** [03-casos-de-uso.md](03-casos-de-uso.md), [04-persistencia-e-concorrencia.md](04-persistencia-e-concorrencia.md)
 
 ## Decisao
 
-Um job Quartz no host sera responsavel por persistir a transicao de reservas vencidas para `Expired`. Os casos de uso nao executam expiracao sob demanda. O job dispara ao iniciar o host e depois a cada hora.
+Um job Quartz no host sera responsavel por persistir a transicao de reservas vencidas para `Expired`. Os casos de uso nao executam expiracao sob demanda. O job dispara uma vez ao iniciar o host e depois de acordo com `Quartz:ReservationExpiration:CronExpression`, definido em `appsettings.json`. O valor padrao `0 * * * * ?` dispara no inicio de cada minuto.
 
 ## Regras enquanto o worker nao processa a reserva
 

@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using ProductReservation.Domain.Reservations;
 using ProductReservation.Infrastructure.Persistence;
+using ProductReservation.Infrastructure.Services;
+using ProductReservation.Infrastructure.Workers;
 using Xunit;
 
 namespace ProductReservation.Infrastructure.Tests.Persistence;
@@ -74,6 +76,41 @@ public sealed class AppDbContextTests
         Assert.NotNull(storedReservation.CancelledAtUtc);
     }
 
+    [Fact]
+    public async Task SeedData_CreatesReservationThatExpiresAtTheNextMinuteAndWorkerExpiresItThen()
+    {
+        await using var dbContext = CreateDbContext();
+        await dbContext.Database.EnsureCreatedAsync();
+        var nowUtc = new DateTimeOffset(2030, 1, 2, 3, 4, 5, TimeSpan.Zero);
+        var timeProvider = new FixedTimeProvider(nowUtc);
+
+        await SeedData.InitializeAsync(dbContext, timeProvider);
+        await SeedData.InitializeAsync(dbContext, timeProvider);
+
+        var seededReservation = await dbContext.Reservations.SingleAsync();
+        var nextMinuteUtc = new DateTimeOffset(2030, 1, 2, 3, 5, 0, TimeSpan.Zero);
+        Assert.Equal(SeedData.ReservationToExpireId, seededReservation.Id);
+        Assert.Equal(SeedData.CustomerAId, seededReservation.CustomerId);
+        Assert.Equal(SeedData.ProductAId, seededReservation.ProductId);
+        Assert.Equal(ReservationStatus.Active.Id, seededReservation.StatusId);
+        Assert.Equal(nowUtc, seededReservation.CreatedAtUtc);
+        Assert.Equal(nextMinuteUtc, seededReservation.ExpiresAtUtc);
+
+        var productLock = new ProductLock();
+        var beforeExpiryProcessor = new ExpiredReservationProcessor(
+            dbContext,
+            productLock,
+            new FixedTimeProvider(nowUtc));
+        var atExpiryProcessor = new ExpiredReservationProcessor(
+            dbContext,
+            productLock,
+            new FixedTimeProvider(nextMinuteUtc));
+
+        Assert.Equal(0, await beforeExpiryProcessor.ProcessBatchAsync());
+        Assert.Equal(1, await atExpiryProcessor.ProcessBatchAsync());
+        Assert.Equal(ReservationStatus.Expired.Id, seededReservation.StatusId);
+    }
+
     private static AppDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -81,5 +118,10 @@ public sealed class AppDbContextTests
             .Options;
 
         return new AppDbContext(options);
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset nowUtc) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => nowUtc;
     }
 }

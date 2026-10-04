@@ -14,9 +14,9 @@ public sealed class ProductAvailability
 
     public int AvailableQuantity => TotalQuantity - ReservedQuantity;
 
-    public ProductStatus Status => AvailableQuantity == 0
+    public ProductStatus Status => TotalQuantity == 0
         ? ProductStatus.Unavailable
-        : ReservedQuantity == 0
-            ? ProductStatus.Available
-            : ProductStatus.Reserved;
+        : AvailableQuantity == 0
+            ? ProductStatus.Reserved
+            : ProductStatus.Available;
 }

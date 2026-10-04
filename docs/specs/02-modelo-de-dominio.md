@@ -37,9 +37,9 @@ O produto expoe comportamento de dominio para verificar se uma quantidade cabe n
 
 - Quantidades de produto e reserva sao inteiros; reserva requer valor maior que zero.
 - A soma de reservas ativas nunca ultrapassa `TotalQuantity`.
-- Ha no maximo uma reserva ativa para o mesmo `CustomerId` e `ProductId`.
+- Cada reserva ativa e independente; varias reservas podem compartilhar `CustomerId` e `ProductId`. A soma de suas quantidades, junto com as demais reservas ativas do produto, nao pode exceder `TotalQuantity`.
 - Horarios sao armazenados em UTC e a duracao e exatamente 72 horas.
-- `disponivel`: reservado igual a zero; `reservado`: reservado maior que zero e menor que o total; `indisponivel`: reservado igual ao total. Um produto com total zero e `indisponivel`.
+- `Available`: saldo maior que zero, independentemente de haver reservas parciais; `Reserved`: todo o estoque total positivo esta reservado; `Unavailable`: estoque total igual a zero. Novas reservas sao permitidas sempre que o status e `Available` e a quantidade solicitada cabe em `AvailableQuantity`.
 
 ## Responsabilidades por camada
 

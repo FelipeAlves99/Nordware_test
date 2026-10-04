@@ -1,5 +1,4 @@
 using MediatR;
-using ProductReservation.Api;
 using ProductReservation.Application.Reservations.CancelProduct;
 using ProductReservation.Application.Reservations.ListCustomerReservations;
 using ProductReservation.Application.Reservations.ReserveProduct;
@@ -14,8 +13,8 @@ public static class ReservationsEndpoints
     {
         endpoints.MapPost("/products/{productId}/reserve", ReserveProductAsync)
             .WithName("ReserveProduct");
-        endpoints.MapDelete("/products/{productId}/reserve", CancelProductAsync)
-            .WithName("CancelProductReservation");
+        endpoints.MapDelete("/reservations/{reservationId}", CancelReservationAsync)
+            .WithName("CancelReservation");
         endpoints.MapGet("/customer/{customerId}/reservations", ListCustomerReservationsAsync)
             .WithName("ListCustomerReservations");
 
@@ -46,15 +45,15 @@ public static class ReservationsEndpoints
         return Results.Json(result, statusCode: StatusCodes.Status201Created);
     }
 
-    private static async Task<IResult> CancelProductAsync(
-        string productId,
+    private static async Task<IResult> CancelReservationAsync(
+        string reservationId,
         HttpRequest httpRequest,
         ISender sender,
         CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(productId, out var parsedProductId) || parsedProductId == Guid.Empty)
+        if (!Guid.TryParse(reservationId, out var parsedReservationId) || parsedReservationId == Guid.Empty)
         {
-            return ApiProblems.BadRequest("InvalidProductId", "Product id must be a non-empty GUID.");
+            return ApiProblems.BadRequest("InvalidReservationId", "Reservation id must be a non-empty GUID.");
         }
 
         if (!TryGetCustomerId(httpRequest, out var customerId, out var problem))
@@ -62,7 +61,9 @@ public static class ReservationsEndpoints
             return problem;
         }
 
-        await sender.Send(new CancelProductReservationCommand(parsedProductId, customerId), cancellationToken);
+        await sender.Send(
+            new CancelProductReservationCommand(parsedReservationId, customerId),
+            cancellationToken);
         return Results.NoContent();
     }
 

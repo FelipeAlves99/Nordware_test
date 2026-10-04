@@ -7,7 +7,7 @@ namespace ProductReservation.Domain.Tests;
 public sealed class ProductTests
 {
     [Fact]
-    public void GetAvailability_WhenPartOfStockIsReserved_ReturnsReservedStatusAndRemainingQuantity()
+    public void GetAvailability_WhenPartOfStockIsReserved_RemainsAvailableWithRemainingQuantity()
     {
         var product = new Product("Produto A", 10);
 
@@ -16,12 +16,12 @@ public sealed class ProductTests
         Assert.Equal(10, availability.TotalQuantity);
         Assert.Equal(3, availability.ReservedQuantity);
         Assert.Equal(7, availability.AvailableQuantity);
-        Assert.Equal(ProductStatus.Reserved, availability.Status);
+        Assert.Equal(ProductStatus.Available, availability.Status);
     }
 
     [Theory]
     [InlineData(10, 0, "Available")]
-    [InlineData(10, 10, "Unavailable")]
+    [InlineData(10, 10, "Reserved")]
     [InlineData(0, 0, "Unavailable")]
     public void GetAvailability_DerivesExpectedStatus(int totalQuantity, int reservedQuantity, string expectedStatusId)
     {
